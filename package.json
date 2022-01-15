@@ -1,0 +1,17 @@
+{
+    "name": "com.handcraftedgames.common",
+    "version": "0.0.1",
+    "displayName": "Common",
+    "description": "Common library used by other libraries from HG.",
+    "unity": "2018.4",
+    "keywords": [
+        "HandcraftedGames",
+        "Common"
+    ],
+    "author": {
+        "name": "Pawel Sulik",
+        "email": "pawel.sulik@handcrafted.games",
+        "url": "https://handcrafted.games"
+    },
+    "dependencies": {}
+}
