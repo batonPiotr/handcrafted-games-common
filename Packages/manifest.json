@@ -1,0 +1,7 @@
+{
+    "dependencies": {
+        "com.neuecc.unirx": "https://github.com/neuecc/UniRx.git?path=Assets/Plugins/UniRx/Scripts"
+    },
+    "enableLockFile": true,
+    "resolutionStrategy": "highestMinor"
+}

@@ -12,8 +12,5 @@
         "name": "Pawel Sulik",
         "email": "pawel.sulik@handcrafted.games",
         "url": "https://handcrafted.games"
-    },
-    "dependencies": {
-        "com.neuecc.unirx": "https://github.com/neuecc/UniRx.git?path=Assets/Plugins/UniRx/Scripts"
     }
 }
