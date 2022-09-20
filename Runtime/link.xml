@@ -1,0 +1,9 @@
+<linker>
+	<assembly fullname="System">
+		<type fullname="System.Threading" preserve="all"/>
+		<type fullname="System.Reactive" preserve="all"/>
+		<type fullname="System.Reactive.Linq" preserve="all"/>
+		<type fullname="System.Reactive.Concurrency" preserve="all"/>
+		<type fullname="System.Reactive.Concurrency.CurrentThreadScheduler" preserve="all"/>
+	</assembly>
+</linker>

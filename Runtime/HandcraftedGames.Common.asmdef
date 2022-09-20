@@ -1,7 +1,10 @@
 {
     "name": "HandcraftedGames.Common",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "GUID:560b04d1a97f54a4e82edc0cbbb69285",
+        "GUID:8575f327ea27744fbbf632c765c1957e"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

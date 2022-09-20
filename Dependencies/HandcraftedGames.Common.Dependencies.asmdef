@@ -1,0 +1,16 @@
+{
+    "name": "HandcraftedGames.Common.Dependencies",
+    "rootNamespace": "",
+    "references": [
+        "GUID:5eb3300d319d64561825359b5fc4964c"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

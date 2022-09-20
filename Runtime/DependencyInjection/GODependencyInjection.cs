@@ -3,57 +3,116 @@ namespace HandcraftedGames.Common
     using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
+    using System.Linq;
+    using System.Reflection;
+
+    public class UnableToResolveException: System.Exception
+    {
+        public UnableToResolveException(string Requester, System.Type invalidType): base("[" + Requester + "] Couldn't resolve [" + invalidType + "].")
+        {
+
+        }
+    }
+
+    [System.Flags]
+    public enum ResolveSource
+    {
+        Self                    = 1 << 0,
+        ExplicitDependencies    = 1 << 1,
+        Children                = 1 << 2,
+        Parent                  = 1 << 3,
+        Parents                 = 1 << 4,
+        Scene                   = 1 << 5,
+        Global                  = 1 << 6,
+        Default                 = ResolveSource.Self | ResolveSource.Scene | ResolveSource.ExplicitDependencies | ResolveSource.Global
+    }
 
     [ScriptOrder(10000)]
     public class GODependencyInjection : MonoBehaviour
     {
+        public const string SceneDITag = "SceneDIContainer";
+        public const string GlobalDITag = "GlobalDIContainer";
+
+        bool Verbose = false;
+
         public interface IGOResolver
         {
-            T Resolve<T>() where T: class;
-            T[] ResolveAll<T>() where T: class;
+            T Resolve<T>(ResolveSource strategy = ResolveSource.Default, bool Optional = false) where T: class;
+            IEnumerable<T> ResolveAll<T>(ResolveSource strategy = ResolveSource.Default) where T: class;
         }
         private class GOResolver: IGOResolver
         {
             public GODependencyInjection source;
-            public T Resolve<T>() where T: class
+            public T Resolve<T>(ResolveSource strategy = ResolveSource.Default, bool Optional = false) where T: class
             {
-                return source.Resolve<T>();
+                return source.Resolve<T>(source, strategy, Optional);
             }
-            public T[] ResolveAll<T>() where T: class
+            public IEnumerable<T> ResolveAll<T>(ResolveSource strategy = ResolveSource.Default) where T: class
             {
-                return source.ResolveAll<T>();
+                return source.ResolveAll<T>(strategy);
             }
         }
+
         private List<System.Object> registeredClasses = new List<System.Object>();
+
+        [ReadOnly, SerializeReference]
+        private List<string> registeredClassNames = new List<string>();
+        [ReadOnly, SerializeField]
         private List<GODependencyInjection> dependencies = new List<GODependencyInjection>();
-        private List<System.Func<IGOResolver, bool>> dependencyRequests = new List<System.Func<IGOResolver, bool>>();
+        private GODependencyInjection sceneDI;
+        private GODependencyInjection globalDI;
+        private List<System.Action<IGOResolver>> dependencyRequests = new List<System.Action<IGOResolver>>();
 
         private bool isInitialized = false;
+        private bool isInitializationFailed = false;
 
         public bool IsInitialized => isInitialized;
+        public bool IsInitializationFailed => isInitializationFailed;
         public event System.Action<GODependencyInjection> OnDidInitialize;
+
+        private void Awake()
+        {
+            if(Verbose) this.Log("Awake");
+            if(!gameObject.CompareTag(GlobalDITag))
+            {
+                globalDI = gameObject.GetGlobalDependencyInjection();
+
+                if(!gameObject.CompareTag(SceneDITag))
+                {
+                    sceneDI = gameObject.scene.GetGODependencyInjection(true);
+                }
+            }
+        }
 
         private void Start()
         {
+            if(Verbose) this.Log("Start");
             if(!isInitialized)
                 TryToInitialize();
         }
 
-        public void AddDependencyRequest(System.Func<IGOResolver, bool> request)
+        public void AddDependencyRequest(System.Action<IGOResolver> request)
         {
-            if(isInitialized)
+            if(isInitializationFailed)
+                throw new System.Exception(gameObject.name + " Has failed to initialize because of unresolved dependencies. Request couldn't be satisfied. If some dependency doesn't have to be resolved, consider using `Optional` flag.");
+            else if(isInitialized)
             {
-                Debug.LogError("This dependency resolver [" + name + "] has been already resolved. Cannot add more dependency requests");
-                return;
+                var resolver = new GOResolver();
+                resolver.source = this;
+                try { request(resolver); }
+                catch(System.Exception exception) { Debug.LogException(exception); return; }
+                // this.LogError("This dependency resolver has already been resolved. Cannot add more dependency requests");
+                // return;
             }
-            dependencyRequests.Add(request);
+            else
+                dependencyRequests.Add(request);
         }
 
         public void AddDependency(GameObject dependency)
         {
             if(isInitialized)
             {
-                Debug.LogError("This dependency resolver [" + name + "] has been already resolved. Cannot add more dependencies");
+                this.LogError("This dependency resolver has already already resolved. Cannot add more dependencies");
                 return;
             }
             if(dependency == gameObject)
@@ -61,9 +120,15 @@ namespace HandcraftedGames.Common
             var di = dependency.GetGODependencyInjection();
             if(di.dependencies.Contains(this))
             {
-                Debug.LogError("Requested dependency: " + dependency.name + " has in it dependency on this instance. This would create a deadlock");
+                this.LogError("Requested dependency: " + dependency.name + " has in it dependency on this instance. This would create a deadlock");
                 return;
             }
+            if(dependencies.Contains(di))
+            {
+                // this.LogWarning("This dependency: [" + dependency + "] is already added.");
+                return;
+            }
+            if(Verbose) this.Log("Added dependency: " + dependency.name);
             dependencies.Add(di);
             di.OnDidInitialize += OnDependencyDidInitialize;
         }
@@ -86,60 +151,120 @@ namespace HandcraftedGames.Common
         {
             if(isInitialized)
             {
-                Debug.LogError("This dependency resolver [" + name + "] has been already resolved. Cannot initialize again.");
+                // Debug.LogError("This dependency resolver [" + name + "] has been already resolved. Cannot initialize again.");
                 return;
             }
             var resolver = new GOResolver();
             resolver.source = this;
             foreach(var request in dependencyRequests)
             {
-                if(!request(resolver))
+                try { request(resolver); }
+                catch(System.Exception exception)
                 {
-                    Debug.LogError("Couldn't satisfy dependencies on " + name + ". Further resolve is not possible.");
+                    Debug.LogException(exception);
+                    isInitializationFailed = true;
                     return;
                 }
             }
             isInitialized = true;
-            OnDidInitialize?.Invoke(this);
             foreach(var dependency in dependencies)
                 dependency.OnDidInitialize -= OnDependencyDidInitialize;
-            dependencies.Clear();
+            // dependencies.Clear();
+            if(Verbose) this.Log("Did initialize!");
+            OnDidInitialize?.Invoke(this);
         }
 
-        private T Resolve<T>() where T: class
+        private T Resolve<T>(Object requester, ResolveSource strategy = ResolveSource.Default, bool Optional = false) where T: class
         {
-            foreach(var obj in registeredClasses)
+            if(this is T)
+                return this as T;
+
+            if(strategy.HasFlag(ResolveSource.Self))
+                foreach(var obj in registeredClasses)
+                {
+                    if(obj is T)
+                        return obj as T;
+                }
+
+            var selectedDependencies = new List<GODependencyInjection>();
+            if(strategy.HasFlag(ResolveSource.ExplicitDependencies))
+                selectedDependencies.AddRange(dependencies);
+            if(strategy.HasFlag(ResolveSource.Global) && globalDI != null)
+                selectedDependencies.Add(globalDI);
+            if(strategy.HasFlag(ResolveSource.Scene) && sceneDI != null)
+                selectedDependencies.Add(sceneDI);
+            if(strategy.HasFlag(ResolveSource.Children))
+                selectedDependencies.AddRange(gameObject.GetComponentsInChildren<GODependencyInjection>());
+            if(strategy.HasFlag(ResolveSource.Parent))
+                selectedDependencies.AddRange(gameObject.GetComponentsInParent<GODependencyInjection>());
+            else if(strategy.HasFlag(ResolveSource.Parents))
+                selectedDependencies.AddRange(gameObject.GetComponentsInAllParents<GODependencyInjection>());
+
+            foreach(var d in selectedDependencies.Reverse<GODependencyInjection>())
             {
-                if(obj is T)
-                    return obj as T;
+                try
+                {
+                    var retVal = d.Resolve<T>(requester, ResolveSource.Self);
+                    if(retVal != null)
+                        return retVal;
+                }
+                catch(UnableToResolveException exception)
+                {
+                    // Log this only in very verbose log mode
+                    // this.LogWarning("[" + d.name + "] " + exception.Message);
+                }
             }
-            foreach(var d in dependencies)
-            {
-                var retVal = d.Resolve<T>();
-                if(retVal != null)
-                    return retVal;
-            }
+            if(!Optional)
+                throw new UnableToResolveException(requester.name, typeof(T));
             return null;
         }
 
-        private T[] ResolveAll<T>() where T: class
+        private IEnumerable<T> ResolveAll<T>(ResolveSource strategy = ResolveSource.Default) where T: class
         {
             var retVal = new List<T>();
-            foreach(var obj in registeredClasses)
+
+            if(strategy.HasFlag(ResolveSource.Self))
+                foreach(var obj in registeredClasses)
+                {
+                    if(obj is T)
+                        retVal.Add((T)obj);
+                }
+
+            var selectedDependencies = new List<GODependencyInjection>();
+            if(strategy.HasFlag(ResolveSource.ExplicitDependencies))
+                selectedDependencies.AddRange(dependencies);
+            if(strategy.HasFlag(ResolveSource.Global) && globalDI != null)
+                selectedDependencies.Add(globalDI);
+            if(strategy.HasFlag(ResolveSource.Scene) && sceneDI != null)
+                selectedDependencies.Add(sceneDI);
+            if(strategy.HasFlag(ResolveSource.Children))
+                selectedDependencies.AddRange(gameObject.GetComponentsInChildren<GODependencyInjection>());
+            if(strategy.HasFlag(ResolveSource.Parent))
+                selectedDependencies.AddRange(gameObject.GetComponentsInParent<GODependencyInjection>());
+            else if(strategy.HasFlag(ResolveSource.Parents))
+                selectedDependencies.AddRange(gameObject.GetComponentsInAllParents<GODependencyInjection>());
+
+            foreach(var d in selectedDependencies)
             {
-                if(obj is T)
-                    retVal.Add(obj as T);
+                retVal.AddRange(d.ResolveAll<T>(ResolveSource.Self));
             }
-            foreach(var d in dependencies)
-            {
-                retVal.AddRange(d.ResolveAll<T>());
-            }
-            return retVal.ToArray();
+            return retVal.AsEnumerable();
         }
 
-        public void Register<T>(T obj)
+        public void Register<T>(T obj, ResolveSource strategy = ResolveSource.Default)
         {
             registeredClasses.Add(obj);
+            registeredClassNames.Add(typeof(T).ToString());
+            ResolveDependencies(obj, strategy);
+            if(Verbose) this.Log("Registered: " + obj);
+        }
+
+        public void ResolveDependencies<T>(T obj, ResolveSource strategy = ResolveSource.Default)
+        {
+            ResolveInjectAttributes(obj);
+            ResolveInjectAllAttributes(obj);
+            ResolveOnInjectMethodAttribute(obj);
+            if(Verbose) this.Log("Resolved dependencies for: " + obj);
         }
 
         private void OnDestroy()
@@ -149,6 +274,7 @@ namespace HandcraftedGames.Common
             registeredClasses.Clear();
             foreach(var dependency in dependencies)
                 dependency.OnDidInitialize -= OnDependencyDidInitialize;
+            dependencies.Clear();
         }
 
         public List<GODependencyInjection> DeepDependencies()
@@ -160,13 +286,93 @@ namespace HandcraftedGames.Common
             }
             return retVal;
         }
+
+        private void ResolveInjectAttributes<T>(T obj)
+        {
+            System.Type currentType = typeof(T);
+            while(currentType != null)
+            {
+                var fields = currentType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    .Where(i => InjectAttribute.IsDefined(i, typeof(InjectAttribute)));
+
+                var method = typeof(IGOResolver).GetMethod("Resolve");
+
+                foreach(var p in fields)
+                {
+                    var attribute = p.GetCustomAttribute<InjectAttribute>();
+                    var genericMethod = method.MakeGenericMethod(p.FieldType);
+                    AddDependencyRequest(resolver => {
+                        p.SetValue(obj, genericMethod.Invoke(resolver, new object[] { attribute.strategy, attribute.Optional }));
+                    });
+                }
+                currentType = currentType.BaseType;
+            }
+        }
+
+        private void ResolveInjectAllAttributes<T>(T obj)
+        {
+            System.Type currentType = typeof(T);
+            while(currentType != null)
+            {
+                var fields = currentType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                    .Where(i => InjectAttribute.IsDefined(i, typeof(InjectAllAttribute)));
+
+                var method = typeof(IGOResolver).GetMethod("ResolveAll");
+
+                foreach(var p in fields)
+                {
+                    var attribute = p.GetCustomAttribute<InjectAllAttribute>();
+                    var genericMethod = method.MakeGenericMethod(p.FieldType.GetGenericArguments()[0]);
+                    AddDependencyRequest(resolver => {
+                        p.SetValue(obj, genericMethod.Invoke(resolver, new object[] { attribute.strategy }));
+                    });
+                }
+                currentType = currentType.BaseType;
+            }
+        }
+
+        private void ResolveOnInjectMethodAttribute<T>(T obj)
+        {
+            var methods = typeof(T).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .Where(i => OnDependenciesDidResolve.IsDefined(i, typeof(OnDependenciesDidResolve)));
+
+            foreach(var m in methods)
+            {
+                System.Action<GODependencyInjection> onDidInitializeCallback = null;
+                onDidInitializeCallback = (di) => {
+                    m.Invoke(obj, null);
+                    this.OnDidInitialize -= onDidInitializeCallback;
+                };
+                this.OnDidInitialize += onDidInitializeCallback;
+            }
+        }
+
     }
 
-    public static class GameObjectDependencyInjectionExtension
+    [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property | System.AttributeTargets.All, Inherited = false, AllowMultiple = false)]
+    public sealed class InjectAttribute : System.Attribute
     {
-        public static GODependencyInjection GetGODependencyInjection(this GameObject gameObject)
+        public InjectAttribute(ResolveSource strategy = ResolveSource.Default)
         {
-            return gameObject.GetComponent<GODependencyInjection>() ?? gameObject.AddComponent<GODependencyInjection>();
+            this.strategy = strategy;
         }
+
+        public ResolveSource strategy = ResolveSource.Default;
+        public bool Optional = false;
+    }
+
+    [System.AttributeUsage(System.AttributeTargets.Field | System.AttributeTargets.Property | System.AttributeTargets.All, Inherited = false, AllowMultiple = false)]
+    public sealed class InjectAllAttribute : System.Attribute
+    {
+        public InjectAllAttribute(ResolveSource strategy = ResolveSource.Default)
+        {
+            this.strategy = strategy;
+        }
+
+        public ResolveSource strategy = ResolveSource.Default;
+    }
+    [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
+    public sealed class OnDependenciesDidResolve : System.Attribute
+    {
     }
 }
