@@ -1,8 +1,8 @@
 namespace HandcraftedGames.Common
 {
     using System;
-    using System.Reactive;
-    using System.Reactive.Linq;
+    using HandcraftedGames.Common.Rx;
+    using UniRx;
 
     public interface IAlertService
     {
@@ -11,15 +11,14 @@ namespace HandcraftedGames.Common
 
     public static class AlertServiceExtension
     {
-        public static IObservable<Unit> Show(this IAlertService service, string text)
+        public static IObservable<Never> Show(this IAlertService service, string text)
         {
-            return Observable.Create<Unit>((observer) =>
+            return Observable.Create<Never>((observer) =>
             {
                 service.Show(text, () => {
-                    observer.OnNext(Unit.Default);
                     observer.OnCompleted();
                 });
-                return System.Reactive.Disposables.Disposable.Create(() => {});
+                return UniRx.Disposable.Create(() => {});
             });
         }
     }

@@ -1,8 +1,8 @@
 namespace HandcraftedGames.Common.Serialization
 {
     using System;
-    using System.Reactive;
-    using System.Reactive.Linq;
+    using HandcraftedGames.Common.Rx;
+    using UniRx;
 
     public class FormSerializer<T> : IFormSerializer<T> where T : class, new()
     {
@@ -18,7 +18,7 @@ namespace HandcraftedGames.Common.Serialization
             return keyValueRepo.Load<T>("data");
         }
 
-        public IObservable<Unit> Update(Action<T> writeAction)
+        public IObservable<Never> Update(Action<T> writeAction)
         {
             return Load()
                 .DefaultIfEmpty(new T())

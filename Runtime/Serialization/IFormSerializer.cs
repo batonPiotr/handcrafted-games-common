@@ -1,12 +1,12 @@
 namespace HandcraftedGames.Common.Serialization
 {
     using System;
-    using System.Reactive;
-    using System.Reactive.Linq;
+    using UniRx;
+    using HandcraftedGames.Common.Rx;
 
     public interface IFormSerializer<T> where T: class
     {
-        IObservable<Unit> Update(System.Action<T> writeAction);
+        IObservable<Never> Update(System.Action<T> writeAction);
         IObservable<T> Load();
     }
 

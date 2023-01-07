@@ -1,7 +1,7 @@
 namespace HandcraftedGames.Common
 {
     using System;
-    using System.Reactive.Linq;
+    using UniRx;
 
     public interface LocalizedException
     {

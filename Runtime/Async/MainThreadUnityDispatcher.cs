@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace HandcraftedGames.Common
 {
-    public class MainThreadUnityDispatcher: MonoBehaviour, IDispatchQueue
+    public class MainThreadUnityDispatcher : MonoBehaviour, IDispatchQueue
     {
         public static MainThreadUnityDispatcher Main;
         public static System.Threading.Tasks.TaskScheduler MainScheduler;
@@ -17,30 +17,36 @@ namespace HandcraftedGames.Common
 
         private Queue<IRunner> queue = new Queue<IRunner>();
         private IRunner current = null;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void Initialize() {
+            Main = Create("MainThreadUnityDispatcher");
+        }
+
         public static MainThreadUnityDispatcher Create(string name, bool dontDestroyOnLoad = true)
         {
             var go = new GameObject(name);
             var retVal = go.AddComponent<MainThreadUnityDispatcher>();
             MainScheduler = System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext();
-            if(dontDestroyOnLoad) DontDestroyOnLoad(go);
+            if (dontDestroyOnLoad) DontDestroyOnLoad(go);
             return retVal;
         }
 
         private async Task Enqueue(IRunner runner)
         {
-            if(runner.Tasks == null)
+            if (runner.Tasks == null)
                 throw new System.ArgumentNullException();
-            if(runner.Tasks.Count() == 0)
+            if (runner.Tasks.Count() == 0)
                 throw new IndexOutOfRangeException();
-            if(MainThreadId == System.Threading.Thread.CurrentThread.ManagedThreadId)
+            if (MainThreadId == System.Threading.Thread.CurrentThread.ManagedThreadId)
             {
-                if(runner.Tasks.First().Status == TaskStatus.Created)
+                if (runner.Tasks.First().Status == TaskStatus.Created)
                     runner.Tasks.First().Start(MainScheduler);
                 try { runner.Tasks.Last().Wait(); }
                 catch (System.Exception e) { Handle(e); }
                 return;
             }
-            lock(queue)
+            lock (queue)
             {
                 queue.Enqueue(runner);
             }
@@ -87,29 +93,29 @@ namespace HandcraftedGames.Common
         }
         public async Task Completed()
         {
-            await EnqueueAsync(() => {});
+            await EnqueueAsync(() => { });
         }
 
         private async void Update()
         {
-            if(current == null)
+            if (current == null)
             {
-                lock(queue)
+                lock (queue)
                 {
-                    if(queue.Count == 0)
+                    if (queue.Count == 0)
                     {
                         return;
                     }
                     current = queue.Dequeue();
                 }
-                if(current != null)
+                if (current != null)
                 {
                     // using(var A = AsyncBridge.AsyncHelper.Wait)
                     // {
 
                     // }
                     // var lol = current.Task.ConfigureAwait(true);
-                    if(current.Tasks.First().Status == TaskStatus.Created)
+                    if (current.Tasks.First().Status == TaskStatus.Created)
                         // current.Task.Start(scheduler);
                         current.Tasks.First().RunSynchronously(MainScheduler);
                     try { await current.Tasks.Last(); }

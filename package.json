@@ -1,9 +1,12 @@
 {
     "name": "com.handcraftedgames.common",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "displayName": "Common",
     "description": "Common library used by other libraries from HG.",
     "unity": "2018.4",
+    "dependencies": {
+        "com.unity.test-framework.performance": "2.8.1"
+    },
     "keywords": [
         "HandcraftedGames",
         "Common"

@@ -4,8 +4,7 @@ namespace HandcraftedGames.Common
     using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
-    using System.Reactive;
-    using System.Reactive.Linq;
+    using UniRx;
 
     public class AlertErrorHandler: IGracefulErrorHandler
     {
@@ -19,7 +18,7 @@ namespace HandcraftedGames.Common
                 message = localized.LocalizedMessage;
             else
                 message = error.Message;
-            return alertService.Show(message).IgnoreElements().Select(i => default(T));
+            return alertService.Show(message).Select(i => default(T));
         }
     }
 }

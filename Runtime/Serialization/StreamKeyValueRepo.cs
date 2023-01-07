@@ -1,11 +1,11 @@
 namespace HandcraftedGames.Common.Serialization
 {
     using System;
-    using System.Reactive;
-    using System.Reactive.Linq;
     using System.Linq;
     using HandcraftedGames.Common;
+    using HandcraftedGames.Common.Rx;
     using Newtonsoft.Json;
+    using UniRx;
 
     public class StreamKeyValueRepo<KeyType> : IKeyValueRepo<KeyType>
     {
@@ -34,7 +34,7 @@ namespace HandcraftedGames.Common.Serialization
                 ;
         }
 
-        public IObservable<Unit> Remove(KeyType key)
+        public IObservable<Never> Remove(KeyType key)
         {
             var keyString = key.ToString();
             return dataRepo.Load(i => i.Key == keyString)
@@ -42,7 +42,7 @@ namespace HandcraftedGames.Common.Serialization
                 .SelectMany(i => dataRepo.Remove(i));
         }
 
-        public IObservable<Unit> Save<T>(KeyType key, T value)
+        public IObservable<Never> Save<T>(KeyType key, T value)
         {
             return dataRepo.Save(new KeyValuePair { Key = key.ToString(), Value = JsonConvert.SerializeObject(value) });
         }

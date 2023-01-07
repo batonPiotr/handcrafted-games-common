@@ -104,7 +104,8 @@
             if(PrintExceptions)
             foreach(var t in nextItem.Tasks)
                 t.ContinueWith(task => {
-                    UnityEngine.Debug.LogError("ExtendedSerialTaskQueue task failure: " + task.Exception);
+                    UnityEngine.Debug.LogException(task.Exception);
+                    // UnityEngine.Debug.LogError("ExtendedSerialTaskQueue task failure: " + task.Exception);
                 }, TaskContinuationOptions.OnlyOnFaulted);
         }
         private async Task Enqueue(IRunner runner)
