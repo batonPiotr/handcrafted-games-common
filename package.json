@@ -1,6 +1,6 @@
 {
     "name": "com.handcraftedgames.common",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "displayName": "Common",
     "description": "Common library used by other libraries from HG.",
     "unity": "2018.4",
