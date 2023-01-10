@@ -33,7 +33,7 @@ namespace HandcraftedGames.Common
         public const string SceneDITag = "SceneDIContainer";
         public const string GlobalDITag = "GlobalDIContainer";
 
-        bool Verbose = false;
+        public bool Verbose = false;
 
         public interface IGOResolver
         {
@@ -63,15 +63,15 @@ namespace HandcraftedGames.Common
         private GODependencyInjection globalDI;
         private List<System.Action<IGOResolver>> dependencyRequests = new List<System.Action<IGOResolver>>();
 
-        private bool isInitialized = false;
-        private bool isInitializationFailed = false;
+        public bool IsInitialized { get; private set;}
+        public bool IsInitializationFailed { get; private set;}
 
-        public bool IsInitialized => isInitialized;
-        public bool IsInitializationFailed => isInitializationFailed;
         public event System.Action<GODependencyInjection> OnDidInitialize;
 
         private void Awake()
         {
+            IsInitialized = false;
+            IsInitializationFailed = false;
             if(Verbose) this.Log("Awake");
             if(!gameObject.CompareTag(GlobalDITag))
             {
@@ -87,15 +87,15 @@ namespace HandcraftedGames.Common
         private void Start()
         {
             if(Verbose) this.Log("Start");
-            if(!isInitialized)
+            if(!IsInitialized)
                 TryToInitialize();
         }
 
         public void AddDependencyRequest(System.Action<IGOResolver> request)
         {
-            if(isInitializationFailed)
+            if(IsInitializationFailed)
                 throw new System.Exception(gameObject.name + " Has failed to initialize because of unresolved dependencies. Request couldn't be satisfied. If some dependency doesn't have to be resolved, consider using `Optional` flag.");
-            else if(isInitialized)
+            else if(IsInitialized)
             {
                 var resolver = new GOResolver();
                 resolver.source = this;
@@ -110,7 +110,7 @@ namespace HandcraftedGames.Common
 
         public void AddDependency(GameObject dependency)
         {
-            if(isInitialized)
+            if(IsInitialized)
             {
                 this.LogError("This dependency resolver has already already resolved. Cannot add more dependencies");
                 return;
@@ -141,7 +141,7 @@ namespace HandcraftedGames.Common
 
         private void OnDependencyDidInitialize(GODependencyInjection dependency)
         {
-            if(dependencies.FindAll(i => !i.isInitialized).Count == 0)
+            if(dependencies.FindAll(i => !i.IsInitialized).Count == 0)
             {
                 TryToInitialize();
             }
@@ -149,7 +149,7 @@ namespace HandcraftedGames.Common
 
         private void TryToInitialize()
         {
-            if(isInitialized)
+            if(IsInitialized)
             {
                 // Debug.LogError("This dependency resolver [" + name + "] has been already resolved. Cannot initialize again.");
                 return;
@@ -162,11 +162,11 @@ namespace HandcraftedGames.Common
                 catch(System.Exception exception)
                 {
                     Debug.LogException(exception);
-                    isInitializationFailed = true;
+                    IsInitializationFailed = true;
                     return;
                 }
             }
-            isInitialized = true;
+            IsInitialized = true;
             foreach(var dependency in dependencies)
                 dependency.OnDidInitialize -= OnDependencyDidInitialize;
             // dependencies.Clear();
@@ -374,5 +374,26 @@ namespace HandcraftedGames.Common
     [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
     public sealed class OnDependenciesDidResolve : System.Attribute
     {
+    }
+
+    public static class GODependencyInjectionExtension
+    {
+        /// <summary>
+        /// Calls given action after dependencies are resolved or now if it's already done.
+        /// </summary>
+        public static void NowOrAfterResolve(this GODependencyInjection source, System.Action action)
+        {
+            if(source.IsInitialized)
+                action();
+            else
+            {
+                System.Action<GODependencyInjection> callback = null;
+                callback = (DI) => {
+                    action();
+                    source.OnDidInitialize -= callback;
+                };
+                source.OnDidInitialize += callback;
+            }
+        }
     }
 }

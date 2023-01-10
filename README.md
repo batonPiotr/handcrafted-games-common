@@ -4,6 +4,10 @@ Common library used by other HG Tools.
 
 ## Installation
 
+## UPM
+
+Add package from git URL `https://github.com/batonPiotr/handcrafted-games-common.git?path=Assets/Scripts`
+
 You have to manually add following dependencies:
 
 - Add package from git URL `https://github.com/neuecc/UniRx.git?path=Assets/Plugins/UniRx/Scripts`. Since UPM doesn't support git dependencies, it has to be installed manually.
