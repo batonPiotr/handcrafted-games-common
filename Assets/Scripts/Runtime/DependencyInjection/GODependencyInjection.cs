@@ -251,15 +251,15 @@ namespace HandcraftedGames.Common
             return retVal.AsEnumerable();
         }
 
-        public void Register<T>(T obj, ResolveSource strategy = ResolveSource.Default)
+        public void Register<T>(T obj)
         {
             registeredClasses.Add(obj);
             registeredClassNames.Add(typeof(T).ToString());
-            ResolveDependencies(obj, strategy);
+            ResolveDependencies(obj);
             if(Verbose) this.Log("Registered: " + obj);
         }
 
-        public void ResolveDependencies<T>(T obj, ResolveSource strategy = ResolveSource.Default)
+        public void ResolveDependencies<T>(T obj)
         {
             ResolveInjectAttributes(obj);
             ResolveInjectAllAttributes(obj);
@@ -343,7 +343,10 @@ namespace HandcraftedGames.Common
                     m.Invoke(obj, null);
                     this.OnDidInitialize -= onDidInitializeCallback;
                 };
-                this.OnDidInitialize += onDidInitializeCallback;
+                if(IsInitialized)
+                    onDidInitializeCallback(this);
+                else
+                    this.OnDidInitialize += onDidInitializeCallback;
             }
         }
 
