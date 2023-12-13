@@ -7,7 +7,7 @@ namespace HandcraftedGames.Common.Serialization
     using UnityEngine;
     using System.Linq;
     using HandcraftedGames.Common.Async;
-    using Newtonsoft;
+    using HandcraftedGames.Common.Dependencies.Newtonsoft.Json;
     using HandcraftedGames.Common.Rx;
     using System.Threading.Tasks;
     using System.Threading;
@@ -43,7 +43,7 @@ namespace HandcraftedGames.Common.Serialization
                         await stream.ReadAsync(bytes, 0, bytes.Length);
                         var json = System.Text.Encoding.UTF8.GetString(bytes);
                         if (!(json == null || json == "" || json == "[]"))
-                            retVal = Newtonsoft.Json.JsonConvert.DeserializeObject<List<T>>(json);
+                            retVal = JsonConvert.DeserializeObject<List<T>>(json);
                     }
                     await cacheDispatchQueue.EnqueueAsync(() => { this.cache = retVal; });
                     return retVal;
@@ -80,7 +80,7 @@ namespace HandcraftedGames.Common.Serialization
             {
                 try
                 {
-                    var json = Newtonsoft.Json.JsonConvert.SerializeObject(data);
+                    var json = JsonConvert.SerializeObject(data);
                     var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                     using (Stream stream = reusableStream.OpenStream())
                     {

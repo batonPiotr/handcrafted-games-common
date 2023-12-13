@@ -340,6 +340,7 @@ namespace HandcraftedGames.Common
             {
                 System.Action<GODependencyInjection> onDidInitializeCallback = null;
                 onDidInitializeCallback = (di) => {
+                    UnityEngine.Debug.Log("Calling on did resolve on: " + obj);
                     m.Invoke(obj, null);
                     this.OnDidInitialize -= onDidInitializeCallback;
                 };
