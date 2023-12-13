@@ -13,4 +13,21 @@ namespace HandcraftedGames.Common.Events
 
         event System.Action<IEvent> onEvent;
     }
+
+    public interface IEventBus<EventType> where EventType: IEvent
+    {
+        event System.Action<EventType> onEvent;
+
+        void Emit(EventType emittedEvent);
+    }
+
+    public class EventBus<EventType>: IEventBus<EventType> where EventType: IEvent
+    {
+        public event System.Action<EventType> onEvent;
+
+        public void Emit(EventType emittedEvent)
+        {
+            onEvent?.Invoke(emittedEvent);
+        }
+    }
 }

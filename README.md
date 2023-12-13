@@ -10,8 +10,10 @@ Add package from git URL `https://github.com/batonPiotr/handcrafted-games-common
 
 You have to manually add following dependencies:
 
-- Add package from git URL `https://github.com/neuecc/UniRx.git?path=Assets/Plugins/UniRx/Scripts`. Since UPM doesn't support git dependencies, it has to be installed manually.
+- Add package from git URL `https://github.com/neuecc/UniRx.git?path=Assets/Plugins/UniRx/Scripts`. Since UPM doesn't support git dependencies, it has to be added manually.
 - Add package by name: `com.unity.test-framework.performance`. Since Unity doesn't allow experimental dependencies, you have to install it manually.
+- Add package from git URL `https://github.com/dbrizov/NaughtyAttributes.git#upm`
+- Add package from git URL `https://github.com/mackysoft/Unity-SerializeReferenceExtensions.git?path=Assets/MackySoft/MackySoft.SerializeReferenceExtensions`
 
 ## Usage
 
