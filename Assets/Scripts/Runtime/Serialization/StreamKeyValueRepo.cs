@@ -6,10 +6,11 @@ namespace HandcraftedGames.Common.Serialization
     using HandcraftedGames.Common.Rx;
     using HandcraftedGames.Common.Dependencies.Newtonsoft;
     using UniRx;
+    using HandcraftedGames.Common.Dependencies.Newtonsoft.Json;
 
     public class StreamKeyValueRepo<KeyType> : IKeyValueRepo<KeyType>
     {
-        private struct KeyValuePair : IIDentifiable
+        private struct KeyValuePair : IIdentifiable
         {
             public int? Id { get => (int)Key.CalculateQuickHash(); set {} }
             public string Key { get; set; }
@@ -29,7 +30,7 @@ namespace HandcraftedGames.Common.Serialization
                 .Select(i => i.Value)
                 .Where(i => i != null)
                 .Do((o) => this.Log("Next: " + o + ". Type is: " + o.GetType()))
-                .Select(i => HandcraftedGames.Common.Dependencies.Newtonsoft.Json.JsonConvert.DeserializeObject<T>(i))
+                .Select(i => JsonConvert.DeserializeObject<T>(i))
                 .Do((i) => {}, () => this.Log("On completed"));
                 ;
         }
@@ -44,7 +45,7 @@ namespace HandcraftedGames.Common.Serialization
 
         public IObservable<Never> Save<T>(KeyType key, T value)
         {
-            return dataRepo.Save(new KeyValuePair { Key = key.ToString(), Value = HandcraftedGames.Common.Dependencies.Newtonsoft.Json.JsonConvert.SerializeObject(value) });
+            return dataRepo.Save(new KeyValuePair { Key = key.ToString(), Value = JsonConvert.SerializeObject(value) });
         }
     }
 }

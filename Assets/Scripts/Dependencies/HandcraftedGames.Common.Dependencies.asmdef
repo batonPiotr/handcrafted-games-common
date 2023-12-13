@@ -1,11 +1,11 @@
 {
-    "name": "HandcraftedGames.Common.Dependencies.Newtonsoft.Json",
+    "name": "HandcraftedGames.Common.Dependencies",
     "rootNamespace": "",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
+    "overrideReferences": true,
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],

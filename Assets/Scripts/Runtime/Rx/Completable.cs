@@ -26,6 +26,15 @@ namespace HandcraftedGames.Common.Rx
                 });
         }
 
+        public static System.IObservable<T> AndThen<T>(this System.IObservable<Never> source, System.IObservable<T> continuation)
+        {
+            return source
+                .Materialize()
+                .Where(i => i.Kind == NotificationKind.OnCompleted)
+                .SelectMany(i => { return continuation; })
+                ;
+        }
+
         /// <summary>
         /// Ignores all elements and casts this stream to a completable.
         /// </summary>

@@ -1,6 +1,6 @@
 namespace HandcraftedGames.Common.Serialization
 {
-    public interface IIDentifiable
+    public interface IIdentifiable
     {
         /// <summary>
         /// Idenitifies an object in HandcraftedGames serialization tools.

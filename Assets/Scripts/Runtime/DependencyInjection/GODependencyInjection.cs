@@ -61,6 +61,7 @@ namespace HandcraftedGames.Common
         private List<GODependencyInjection> dependencies = new List<GODependencyInjection>();
         private GODependencyInjection sceneDI;
         private GODependencyInjection globalDI;
+        public static GODependencyInjection GlobalDI { get; private set; }
         private List<System.Action<IGOResolver>> dependencyRequests = new List<System.Action<IGOResolver>>();
 
         public bool IsInitialized { get; private set;}
@@ -76,6 +77,8 @@ namespace HandcraftedGames.Common
             if(!gameObject.CompareTag(GlobalDITag))
             {
                 globalDI = gameObject.GetGlobalDependencyInjection();
+                if(GlobalDI == null)
+                    GlobalDI = globalDI;
 
                 if(!gameObject.CompareTag(SceneDITag))
                 {
@@ -176,15 +179,17 @@ namespace HandcraftedGames.Common
 
         private T Resolve<T>(Object requester, ResolveSource strategy = ResolveSource.Default, bool Optional = false) where T: class
         {
-            if(this is T)
-                return this as T;
-
             if(strategy.HasFlag(ResolveSource.Self))
+            {
+                if(this is T)
+                    return this as T;
+
                 foreach(var obj in registeredClasses)
                 {
                     if(obj is T)
                         return obj as T;
                 }
+            }
 
             var selectedDependencies = new List<GODependencyInjection>();
             if(strategy.HasFlag(ResolveSource.ExplicitDependencies))
@@ -198,7 +203,7 @@ namespace HandcraftedGames.Common
             if(strategy.HasFlag(ResolveSource.Parent))
                 selectedDependencies.AddRange(gameObject.GetComponentsInParent<GODependencyInjection>());
             else if(strategy.HasFlag(ResolveSource.Parents))
-                selectedDependencies.AddRange(gameObject.GetComponentsInAllParents<GODependencyInjection>());
+                selectedDependencies.AddRange(gameObject.GetComponentsInAllParents<GODependencyInjection>().Reverse());
 
             foreach(var d in selectedDependencies.Reverse<GODependencyInjection>())
             {
@@ -289,7 +294,7 @@ namespace HandcraftedGames.Common
 
         private void ResolveInjectAttributes<T>(T obj)
         {
-            System.Type currentType = typeof(T);
+            System.Type currentType = obj.GetType();
             while(currentType != null)
             {
                 var fields = currentType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
@@ -311,7 +316,7 @@ namespace HandcraftedGames.Common
 
         private void ResolveInjectAllAttributes<T>(T obj)
         {
-            System.Type currentType = typeof(T);
+            System.Type currentType = obj.GetType();
             while(currentType != null)
             {
                 var fields = currentType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
@@ -333,7 +338,7 @@ namespace HandcraftedGames.Common
 
         private void ResolveOnInjectMethodAttribute<T>(T obj)
         {
-            var methods = typeof(T).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+            var methods = obj.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
                 .Where(i => OnDependenciesDidResolve.IsDefined(i, typeof(OnDependenciesDidResolve)));
 
             foreach(var m in methods)

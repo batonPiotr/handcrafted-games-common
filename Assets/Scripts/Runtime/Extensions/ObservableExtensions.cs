@@ -1,9 +1,19 @@
 namespace HandcraftedGames.Common
 {
+    using HandcraftedGames.Common.Rx;
     using UniRx;
 
     public static class ObservableExtension
     {
+        // public static System.IObservable<T> AndThen<T>(this System.IObservable<Never> source, System.IObservable<T> continuation)
+        // {
+        //     return source
+        //         .Materialize()
+        //         .Where(i => i.Kind == NotificationKind.OnCompleted)
+        //         .SelectMany(i => { return continuation; })
+        //         ;
+        // }
+
         public static System.IObservable<T> SwitchIfEmpty<T>(this System.IObservable<T> observable, System.IObservable<T> newIfPreviousEmpty)
         {
             return observable
