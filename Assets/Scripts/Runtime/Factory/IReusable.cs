@@ -5,17 +5,19 @@ namespace HandcraftedGames.Common
     /// </summary>
     public interface IReusable
     {
-        System.Object FactorySource { get; set; }
+        IPoolFactory<IReusable> FactorySource { get; set; }
         void CleanAfterUse();
         void PrepareBeforeUse();
     }
 
     public static class ReusableExtension
     {
-        public static void PutBack(this IReusable self)
+        /// <summary>
+        /// Releases this `IReusable` instance to the source pool
+        /// </summary>
+        public static void Release(this IReusable self)
         {
-            var factory = self.FactorySource as PoolFactory;
-            factory.ReleaseInstance(self);
+            self.FactorySource.Release(self);
         }
     }
 }
